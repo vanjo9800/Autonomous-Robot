@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Autonomous Sumo Control</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_sensor">SensorActivity</string>
+    <string name="motorsButtonWorking">Deactivate robot motors movement</string>
+    <string name="motorsButtonNotWorking">Activate robot motors movement</string>
+    <string name="eyesButtonWorking">Deactivate robot eyes movement</string>
+    <string name="eyesButtonNowWorking">Activate robot eyes movement</string>
+    <string name="WiFiSSID">SumoRobot</string>
+    <string name="NotAbleToSend">The application is unable to send tha data. Make sure that the phone is connected to the sumo robot network.</string>
+    <string name="NoAccelerometerFound">No Accelerometer Found</string>
+    <string name="AllGestureControlOff">Gesture Control Not Activated</string>
+    <string name="WrongNetwork">Not connected to the right network</string>
+    <string name="UnableToSend">Unable to send data</string>
+    <string name="ESP8266IP">192.168.4.1</string>
+    <string name="UDPSendingError">Error while sending via UDP</string>
+    <string name="Position">Position of hand:</string>
+</resources>
