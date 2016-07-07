@@ -6,18 +6,18 @@ extern "C" {
   #include <user_interface.h>
 }
 
-const uint8_t WIFI_ESPNOW_DEFAULT_CHANNEL=13;
-uint8_t mac[] = {0x5E,0xCF,0x7F,0xE,0xCD,0x6C};
-uint8_t keysESPNOW[] = {0x13,0xAE,0x25,0x2C,0xCD,0x17,0xFB,0x7F,0x0E,0x57,0x93,0x37,0xEB,0x5C,0xF0,0xBF};
-uint8_t keysEncrypt[] = {0x70,0x0A,0x3A,0xBC,0x03,0x66,0x20,0x7B,0xBA,0x68,0xB4,0x48,0x3C,0xB9,0xD4,0xC8};
+const uint8_t WIFI_ESPNOW_DEFAULT_CHANNEL=;
+uint8_t mac[] = {};
+uint8_t keysESPNOW[] = {};
+uint8_t keysEncrypt[] = {};
 
 const uint8_t MPU_addr=0x68;
 
-const uint8_t buttonPowerPin=D6;
-const uint8_t buttonGroundPin=D7;
+const uint8_t buttonGroundPin=D0;
 uint8_t lastButtonState=LOW;
 
-const uint8_t greenLightPin=D5;
+const uint8_t greenLightPin=D6;
+const uint8_t blueLightPin=D5;
 bool gestureControl=false;
 
 uint8_t statusCommand;
@@ -54,14 +54,13 @@ void setup() {
     statusCommand=status;
   });
 
-  pinMode(buttonPowerPin,OUTPUT);
-  digitalWrite(buttonPowerPin,HIGH);
   pinMode(buttonGroundPin,INPUT);
   pinMode(greenLightPin,OUTPUT);
+  pinMode(blueLightPin,OUTPUT);
   pinMode(BUILTIN_LED, OUTPUT);
   digitalWrite(BUILTIN_LED,LOW);
 
-  while(esp_now_add_peer(mac,(uint8_t)ESP_NOW_ROLE_SLAVE,WIFI_ESP_DEFAULT_CHANNEL,keysESPNOW, 16)){
+  while(esp_now_add_peer(mac,(uint8_t)ESP_NOW_ROLE_SLAVE,WIFI_ESPNOW_DEFAULT_CHANNEL,keysESPNOW, 16)){
     blink();
   }
   while(esp_now_set_kok(keysEncrypt,16)){
@@ -100,19 +99,29 @@ uint16_t counter=0;
 
 void loop() {
   uint8_t currentButtonState=digitalRead(buttonGroundPin);
+  //Serial.println(mode);
+  //delay(100);
   if(currentButtonState!=lastButtonState)
   {
     if(currentButtonState==LOW)
     {
       mode++;
       mode%=3;
-      if(mode!=0)
+      if(mode==1)
       {
         digitalWrite(greenLightPin,HIGH);
       }
       else
       {
         digitalWrite(greenLightPin,LOW);
+      }
+      if(mode==2)
+      {
+        digitalWrite(blueLightPin,HIGH);
+      }
+      else
+      {
+        digitalWrite(blueLightPin,LOW);
       }
     }
     lastButtonState=currentButtonState;
@@ -125,9 +134,10 @@ void loop() {
     Serial.println("Pitch:"+String(pitch)+" Roll:"+String(roll));
     uint8_t message[] = {mode,sign(pitch),abs(pitch),sign(roll),abs(roll)};
     statusCommand=1;
-    while(mode!=0&&statusCommand){
+    for(int i=0;i<10&&mode!=0&&statusCommand;i++){
       esp_now_send(mac, message, sizeof(message));
       delay(100);
     }
   }
 }
+

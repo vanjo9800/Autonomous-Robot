@@ -1,10 +1,10 @@
 <resources>
-    <integer name="UDPCommunicationPort">6259</integer>
+    <integer name="UDPCommunicationPort"></integer>
     <integer-array name="XXTEAKey">
-        <item>-1640232294</item>
-        <item>1108964966</item>
-        <item>1434435373</item>
-        <item>901639973</item>
+        <item></item>
+        <item></item>
+        <item></item>
+        <item></item>
     </integer-array>
-    <integer name="XXTEADELTA">0x9e3779b9</integer>
+    <integer name="XXTEADELTA"></integer>
 </resources>
