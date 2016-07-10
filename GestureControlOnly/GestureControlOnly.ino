@@ -91,15 +91,28 @@ void servoSetPosition(uint16_t highTimeMicroseconds)
   TIMSK2 |= (1 << OCIE2A); // enable timer compare interrupt
 }
 
+const int fullCounter=40;
+const int PhoneNegligiblePitch=2,PhoneNegligibleRoll=2;
+const int PhonePitchMultiplier=19,PhoneRollMultiplier=19;
+const int PhoneServoMultiplier=50;
+const int GlovePitchMultiplier=4,GloveRollMultiplier=1;
+const int GloveServoMultiplier=8;
+const int EyesInit=1500;
+const int WireNumber=7;
+
 ZumoMotors motors;
+
+void stop(){
+	motors.setSpeeds(0,0);
+}
 
 void setup() {
   Serial.begin(9600);
-  Wire.begin(7);
+  Wire.begin(WireNumber);
   Wire.onReceive(receiveEvent);
   servoInit();
-  servoSetPosition(1500);  // Send 1000us pulses.
-  delay(1000);
+  servoSetPosition(EyesInit);
+  delay(1000);//time for eyes to turn and the gesture connection to be established
 }
 
 uint16_t counter=0;
@@ -108,13 +121,25 @@ int16_t roll,pitch,mode,sign;
 void loop() {
   if(counter==0)
   {
-    motors.setSpeeds(0,0);
+	  stop();
   }
   else
   {
     counter--;
   }
   delay(20);
+}
+
+void GloveControl(int16_t pitch,int16_t roll){
+	counter=fullCounter;
+	motors.setSpeeds(GlovePitchMultiplier*pitch+GloveRollMultiplier*roll,GlovePitchMultiplier*pitch-GloveRollMultiplier*roll);
+}
+
+void PhoneControl(int16_t pitch,int16_t roll){
+      if(roll>=-PhoneNegligibleRoll&&roll<=PhoneNegligibleRoll) roll=0;
+      if(pitch>=-PhoneNegligiblePitch&&pitch<=PhoneNegligiblePitch) pitch=0;
+      counter=fullCounter;
+      motors.setSpeeds((-PhonePitchMultiplier)*pitch+(-PhoneRollMultiplier)*roll,(-PhonePitchMultiplier)*pitch+PhoneRollMultiplier*roll);
 }
 
 void receiveEvent(int info) {
@@ -132,45 +157,21 @@ void receiveEvent(int info) {
     }
     if(mode==1)
     {
-      servoSetPosition(1500);
-      if(pitch>roll&&pitch>0){
-        roll-=(pitch-30)/1.5;
-      }
-      if(roll<pitch&&roll<0){
-        pitch-=(-15-roll)*1.5;
-      }
-      if(roll<25&&roll>-15)
-      {
-        roll=0;
-      }
-      if(pitch<15&&pitch>-15)
-      {
-        pitch=0;
-      }
-      if(roll!=0||pitch!=0)
-      {
-        Serial.println(String(roll)+" "+String(pitch));
-        Serial.println(String(4*pitch+roll*1.5)+" "+String(4*pitch-roll*1.5));
-        counter=40;
-        motors.setSpeeds(4*pitch+roll*1.5,4*pitch-roll*1.5);    
-      }
+      servoSetPosition(ServoInit);
+      GloveControl();
     }
     if(mode==2)
     {
-      servoSetPosition(1500+roll*8);
+      servoSetPosition(ServoInit+roll*GloveServoMultiplier;
     }
-    Serial.println(String(mode)+" "+String(pitch)+" "+String(roll));
     if(mode==3)
     {
-      servoSetPosition(1500);
-      if(roll>=-2&&roll<=2) roll=0;
-      if(pitch>=-2&&pitch<=2) pitch=0;
-      counter=40;
-      motors.setSpeeds((-pitch-roll)*19,(-pitch+roll)*19);
+      servoSetPosition(ServoInit);
+      PhoneControl();
     }
     if(mode==4)
     {
-      servoSetPosition(1500-roll*50);
+      servoSetPosition(ServoInit-roll*PhoneServoMultiplier);
     }
   }
 }

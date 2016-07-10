@@ -114,7 +114,19 @@ void servoSetPosition(uint16_t highTimeMicroseconds)
   TIMSK2 |= (1 << OCIE2A); // enable timer compare interrupt
 }
 
-
+const int fullCounter=100;
+const int PhoneNegligiblePitch=2,PhoneNegligibleRoll=2;
+const int PhonePitchMultiplier=19,PhoneRollMultiplier=19;
+const int PhoneServoMultiplier=50;
+const int GlovePitchMultiplier=4,GloveRollMultiplier=1;
+const int GloveServoMultiplier=8;
+const int TurningSpeed=200;
+const int EyesInit=1500;
+const int WireNumber=7;
+const int ServoLeftmost=1000,ServoRightmost=2000,step=100;
+const double areaDivider=2.5;
+const int maxn=1<<14;
+const int closeIndentifier=70,inAreaIdentifier=100;
 
 void waitForButton()
 {
@@ -125,14 +137,25 @@ void waitForButton()
 
 int16_t lastL,lastR;
 
+void setSpeedsAndRemember(int l,int r){
+	motors.setSpeeds(l,r);
+	lastL=l;
+	lastR=r;
+}
+
+void turnAround(int border){
+	setSpeedsAndRemember(border*TurningSpeed,(-border)*TurningSpeed);
+	delay(800);
+	setSpeedsAndRemember(0,0);
+}
 void setup()
 {
   Serial.begin(9600);
   pinMode(LED, HIGH);
-  Wire.begin(7);
+  Wire.begin(WireNumber);
   Wire.onReceive(receiveEvent);
   servoInit();
-  servoSetPosition(1500);
+  servoSetPosition(EyesInit);
   waitForButton();
   delay(1000);
   checkForOpponent();
@@ -146,31 +169,19 @@ void KeepInPlayArea()
   sensors.read(sensor_values);
   if (sensor_values[2] < QTR_THRESHOLD)
   {
-    motors.setSpeeds(200,-200);
-    lastL=200;
-    lastR=-200;
-    delay(800);
-    motors.setSpeeds(0,0);
-    lastL=0;
-    lastR=0;
+    turnAround(1);
     whetherCheckForOpponent=true;
   }
   else if (sensor_values[3] < QTR_THRESHOLD)
   {
-    motors.setSpeeds(-200,200);
-    lastL=-200;
-    lastR=200;
-    delay(800);
-    motors.setSpeeds(0,0);
-    lastL=0;
-    lastR=0;
+    turnAround(-1);
     whetherCheckForOpponent=true;
   }
 }
 
 bool check(){
-  long minimalDist=(1<<14),place;
-  for(int i=1000;i<2001;i+=100)
+  long minimalDist=maxn,place;
+  for(int i=ServoLeftmost;i<ServoRightmost;i+=step)
   {
     servoSetPosition(i);
     delay(10);
@@ -182,26 +193,20 @@ bool check(){
       place=i;
     }
   }
-  if(minimalDist<70){
-    servoSetPosition(1500);
-    motors.setSpeeds((place-1500)/2.5,(1500-place)/2.5);
-    lastL=(place-1500)/2.5;
-    lastR=(1500-place)/2.5;
+  if(minimalDist<closeIndentifier){
+    servoSetPosition(ServoInit);
+    setSpeedsAndRemember((place-ServoInit)/areaDivider,(ServoInit-place)/areaDivider);
     delay(400);
-    motors.setSpeeds(0,0);
-    lastL=0;
-    lastR=0;
+    setSpeedsAndRemember(0,0);
     delay(100);
-    motors.setSpeeds(200,200);
-    lastL=200;
-    lastR=200;
+    setSpeedsAndRemember(200,200);
     return true;
   }
-  if(minimalDist>70&&minimalDist<100)
+  if(minimalDist>closeIndentifier&&minimalDist<inAreaIdentifier)
   {
-    servoSetPosition(1500);
+    servoSetPosition(ServoInit);
     delay(100);
-    motors.setSpeeds(200,200);
+    setSpeedsAndRemember(200,200);
     delay(400);
     return check();
   }
@@ -210,32 +215,24 @@ bool check(){
 
 void checkForOpponent()
 {
-  servoSetPosition(1500);
+  servoSetPosition(ServoInit);
   if(check()) return;
-  servoSetPosition(1500);
+  servoSetPosition(ServoInit);
   delay(100);
   sensors.read(sensor_values);
   if (sensor_values[2] < QTR_THRESHOLD)
   {
-    motors.setSpeeds(200,-200);
-    lastL=200;
-    lastR=-200;
+    setSpeedsAndRemember(200,-200);
     delay(800);
   }
   else if (sensor_values[3] < QTR_THRESHOLD)
   {
-    motors.setSpeeds(-200,200);
-    lastL=-200;
-    lastR=200;
+    setSpeedsAndRemember(-200,200);
     delay(800);
   }
-  motors.setSpeeds(0,0);
-  lastL=0;
-  lastR=0;
+  setSpeedsAndRemember(0,0);
   if(check()) return;
-  motors.setSpeeds(0,0);
-  lastL=0;
-  lastR=0;
+  setSpeedsAndRemember(0,0);
   waitForButton();
 }
 
@@ -244,9 +241,7 @@ int16_t counter=0,roll=0,pitch=0,mode=0,sign=0;
 void loop()
 {
   if (button.isPressed()){
-    motors.setSpeeds(0,0);
-    lastL=0;
-    lastR=0;
+    setSpeedsAndRemember(0,0);
     button.waitForRelease();
     waitForButton();
   }
@@ -261,6 +256,18 @@ void loop()
   {
     checkForOpponent();
   }
+}
+
+void GloveControl(int16_t pitch,int16_t roll){
+	counter=fullCounter;
+	motors.setSpeeds(GlovePitchMultiplier*pitch+GloveRollMultiplier*roll,GlovePitchMultiplier*pitch-GloveRollMultiplier*roll);
+}
+
+void PhoneControl(int16_t pitch,int16_t roll){
+      if(roll>=-PhoneNegligibleRoll&&roll<=PhoneNegligibleRoll) roll=0;
+      if(pitch>=-PhoneNegligiblePitch&&pitch<=PhoneNegligiblePitch) pitch=0;
+      counter=fullCounter;
+      motors.setSpeeds((-PhonePitchMultiplier)*pitch+(-PhoneRollMultiplier)*roll,(-PhonePitchMultiplier)*pitch+PhoneRollMultiplier*roll);
 }
 
 void receiveEvent(int info) {
@@ -278,34 +285,13 @@ void receiveEvent(int info) {
     }
     if(mode==1)
     {
-      servoSetPosition(1500);
-      if(pitch>roll&&pitch>0){
-        roll-=(pitch-30)/1.5;
-      }
-      if(roll<pitch&&roll<0){
-        pitch-=(-15-roll)*1.5;
-      }
-      if(roll<25&&roll>-15)
-      {
-        roll=0;
-      }
-      if(pitch<15&&pitch>-15)
-      {
-        pitch=0;
-      }
-      if(roll!=0||pitch!=0)
-      {
-        counter=100;
-        motors.setSpeeds(4*pitch+roll*1.5,4*pitch-roll*1.5);    
-      }
+      servoSetPosition(ServoInit);
+      GloveControl();
     }
     if(mode==3)
     {
-      servoSetPosition(1500);
-      if(roll>=-2&&roll<=2) roll=0;
-      if(pitch>=-2&&pitch<=2) pitch=0;
-      counter=100;
-      motors.setSpeeds((-pitch-roll)*19,(-pitch+roll)*19);
+      servoSetPosition(ServoInit);
+      PhoneControl();
     }
   }
 }

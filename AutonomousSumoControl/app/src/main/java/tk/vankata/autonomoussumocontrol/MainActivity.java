@@ -77,7 +77,7 @@ public class MainActivity extends Activity implements SensorEventListener {
         initializeViews();
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null) {
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)!=null) {
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
         } else {
@@ -96,7 +96,7 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this,accelerometer,SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     protected void onPause() {
@@ -205,12 +205,10 @@ public class MainActivity extends Activity implements SensorEventListener {
             try {
                 DatagramSocket robot = new DatagramSocket();
                 InetAddress robotIP = InetAddress.getByName(getString(R.string.ESP8266IP));
-                Log.i("MainActivity", getString(R.string.ESP8266IP));
                 xxtea(params[0],3,keys);
                 String transition=Long.toString(params[0][0])+" "+Long.toString(params[0][1])+" "+Long.toString(params[0][2])+"\n";
                 byte[] byteMessage = transition.getBytes();
                 DatagramPacket toSendPacket = new DatagramPacket(byteMessage, transition.length(), robotIP, appResources.getInteger(R.integer.UDPCommunicationPort));
-                Log.i("MainActivity", Integer.toString(appResources.getInteger(R.integer.UDPCommunicationPort)));
                 robot.send(toSendPacket);
             } catch (IOException e) {
                 failed=true;
@@ -221,42 +219,37 @@ public class MainActivity extends Activity implements SensorEventListener {
 
         private void xxtea(int[] v, int n,int key[]) {
             int DELTA = appResources.getInteger(R.integer.XXTEADELTA);
-            Log.i("MainActivity", Integer.toString(DELTA));
-            for(int i=0;i<4;i++)
-            {
-                Log.i("MainActivity", Integer.toString(keys[i]));
-            }
-            int y, z, sum;
-            int p, rounds, e;
-            if (n > 1) {          /* Coding Part */
-                rounds = 6 + 52 / n;
-                sum = 0;
-                z = v[n - 1];
-                do {
-                    sum += DELTA;
-                    e = (sum >> 2) & 3;
-                    for (p = 0; p < n - 1; p++) {
-                        y = v[p + 1];
-                        z = v[p] += (((z >> 5 ^ y << 2) + (y >> 3 ^ z << 4)) ^ ((sum ^ y) + (key[(p & 3) ^ e] ^ z)));
+            int y,z,sum;
+            int p,rounds,e;
+            if (n>1) {          /* Coding Part */
+                rounds=6+52/n;
+                sum=0;
+                z=v[n - 1];
+                do{
+                    sum+=DELTA;
+                    e=(sum>>2)&3;
+                    for(p=0;p<n-1;p++) {
+                        y=v[p+1];
+                        z=v[p]+=(((z>>5^y<<2)+(y>>3^z<<4))^((sum^y)+(key[(p&3)^e]^z)));
                     }
-                    y = v[0];
-                    z = v[n - 1] += (((z >> 5 ^ y << 2) + (y >> 3 ^ z << 4)) ^ ((sum ^ y) + (key[(p & 3) ^ e] ^ z)));
-                } while ((--rounds) != 0);
-            } else if (n < -1) {  /* Decoding Part */
-                n = -n;
-                rounds = 6 + 52 / n;
-                sum = rounds * DELTA;
-                y = v[0];
-                do {
-                    e = (sum >> 2) & 3;
-                    for (p = n - 1; p > 0; p--) {
-                        z = v[p - 1];
-                        y = v[p] -= (((z >> 5 ^ y << 2) + (y >> 3 ^ z << 4)) ^ ((sum ^ y) + (key[(p & 3) ^ e] ^ z)));
+                    y=v[0];
+                    z=v[n-1]+=(((z>>5^y<<2)+(y>>3^z<<4))^((sum^y)+(key[(p&3)^e]^z)));
+                } while((--rounds)!=0);
+            } else if (n<-1) {  /* Decoding Part */
+                n=-n;
+                rounds=6+52/n;
+                sum=rounds*DELTA;
+                y=v[0];
+                do{
+                    e=(sum>>2)&3;
+                    for(p=n-1;p>0;p--) {
+                        z=v[p-1];
+                        y=v[p]-=(((z>>5^y<<2)+(y>>3^z<<4))^((sum^y)+(key[(p&3)^e]^z)));
                     }
-                    z = v[n - 1];
-                    y = v[0] -= (((z >> 5 ^ y << 2) + (y >> 3 ^ z << 4)) ^ ((sum ^ y) + (key[(p & 3) ^ e] ^ z)));
-                    sum -= DELTA;
-                } while ((--rounds) != 0);
+                    z=v[n-1];
+                    y=v[0]-=(((z>>5^y<<2)+(y>>3^z<<4))^((sum^y)+(key[(p&3)^e]^z)));
+                    sum-=DELTA;
+                } while((--rounds)!=0);
             }
         }
 

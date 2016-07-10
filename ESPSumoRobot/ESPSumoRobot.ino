@@ -1,15 +1,16 @@
 #include <ESP8266WiFi.h>
 #include <Wire.h>
 #include <WiFiUdp.h>
-#include <stdint.h>
 
 extern "C" {
   #include <espnow.h>
   #include <user_interface.h>
 }
 
-uint8_t WIFI_DEFAULT_CHANNEL=;
-uint8_t mac[] = {};
+WiFIServer genkey(4253);
+
+uint8_t WIFI_DEFAULT_CHANNEL=13;
+uint8_t mac[] = {0x5C,0xCF,0x7F,0xB,0x62,0xB5}};
 uint8_t keysESPNOW[] = {};
 uint8_t keysEncrypt[] = {};
 long keyPhone[]={};
@@ -18,38 +19,38 @@ WiFiUDP mobileApp;
 
 const long DELTA=0x9e3779b9;
   
-void xxtea(long *v, int n,long key[4]) {
-  long y, z, sum;
-  long p, rounds, e;
-  if (n > 1) {          /* Coding Part */
-    rounds = 6 + 52/n;
-    sum = 0;
-    z = v[n-1];
-    do {
-      sum += DELTA;
-      e = (sum >> 2) & 3;
-      for (p=0; p<n-1; p++) {
-        y = v[p+1]; 
-        z = v[p] += (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)));
-      }
-      y = v[0];
-      z = v[n-1] += (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)));
-    } while (--rounds);
-  } else if (n < -1) {  /* Decoding Part */
-    n = -n;
-    rounds = 6 + 52/n;
-    sum = rounds*DELTA;
-    y = v[0];
-    do {
-      e = (sum >> 2) & 3;
-      for (p=n-1; p>0; p--) {
-        z = v[p-1];
-        y = v[p] -= (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)));
-      }
-      z = v[n-1];
-      y = v[0] -= (((z>>5^y<<2) + (y>>3^z<<4)) ^ ((sum^y) + (key[(p&3)^e] ^ z)));
-      sum -= DELTA;
-    } while (--rounds);
+void xxtea(long *v,int n,long key[4]) {
+  long y,z,sum;
+  long p,rounds,e;
+  if(n>1){           /*CodingPart*/
+	rounds=6+52/n;
+	sum=0;
+	z=v[n-1];
+	do{
+   	   sum+=DELTA;
+	   e=(sum>>2)&3;
+	   for(p=0;p<n-1;p++){
+	      y=v[p+1];
+	      z=v[p]+=(((z>>5^y<<2)+(y>>3^z<<4))^((sum^y)+(key[(p&3)^e]^z)));
+	   }
+	      y=v[0];
+	      z=v[n-1]+=(((z>>5^y<<2)+(y>>3^z<<4))^((sum^y)+(key[(p&3)^e]^z)));
+	} while(--rounds);
+   } else if(n<-1){           /*DecodingPart*/
+	   n=-n;
+	   rounds=6+52/n;
+	   sum=rounds*DELTA;
+	   y=v[0];
+	   do{
+	      e=(sum>>2)&3;
+	      for(p=n-1;p>0;p--){
+	      z=v[p-1];
+	      y=v[p]-=(((z>>5^y<<2)+(y>>3^z<<4))^((sum^y)+(key[(p&3)^e]^z)));
+	   }
+	   z=v[n-1];
+	   y=v[0]-=(((z>>5^y<<2)+(y>>3^z<<4))^((sum^y)+(key[(p&3)^e]^z)));
+	   sum-=DELTA;
+	} while(--rounds);
   }
 }
 
@@ -67,6 +68,12 @@ void setup() {
   WiFi.softAP("SumoRobot", "ZumoShield", 1, 0);
   pinMode(BUILTIN_LED, OUTPUT);
   digitalWrite(BUILTIN_LED,LOW);
+
+  randomSeed(analogRead(0));
+
+  genkey.begin();
+
+  GenKey();
 
   Wire.begin();
   mobileApp.begin(6259);
@@ -150,7 +157,6 @@ void loop() {
     }
 
     if(mobileApp.remoteIP()==myPhoneIP){
-      Serial.println("From my phone: "+String(buff)+"end of buffer");
       int pos=0;
       String data=String(buff);
       long encrypted[3];
@@ -168,7 +174,6 @@ void loop() {
         Wire.write(abs(encrypted[i]));
       }
       Wire.endTransmission();
-      Serial.println("Decoded: "+String(encrypted[0])+" "+String(encrypted[1])+" "+String(encrypted[2]));
     }
   }
 }

@@ -6,10 +6,12 @@ extern "C" {
   #include <user_interface.h>
 }
 
-const uint8_t WIFI_ESPNOW_DEFAULT_CHANNEL=;
-uint8_t mac[] = {};
-uint8_t keysESPNOW[] = {};
-uint8_t keysEncrypt[] = {};
+WiFiServer genkey(9347);
+
+const uint8_t WIFI_ESPNOW_DEFAULT_CHANNEL=13;
+uint8_t mac[] = {0x5E,0xCF,0x7F,0xE,0xCD,0x6C}};
+uint8_t keysESPNOW[16];
+uint8_t keysEncrypt[16];
 
 const uint8_t MPU_addr=0x68;
 
@@ -32,9 +34,25 @@ void blink()
     delay(200);
 }
 
+const uint32_t modulus=982451653;
+const uint32_t g=11;
+
+void GenKey(){
+   WiFi.begin("SumoRobot","ZumoShield");
+   while(!client.connect("192.168.4.1",4253));
+   WiFiclient otherESP=client.connected();
+   for(int i=0;
+}
+
 void setup() {
   Serial.begin(115200);
   WiFi.mode(WIFI_STA);
+
+  randomSeed(analogRead(0));
+
+  genkey.begin();
+
+  GenKey();
 
   if (esp_now_init()==0) {
     Serial.println("direct link  init ok");
@@ -43,6 +61,16 @@ void setup() {
     ESP.restart();
     return;
   }
+
+  
+  uint8_t macaddr[6];
+  wifi_get_macaddr(STATION_IF, macaddr);
+  Serial.print("mac address (STATION_IF): ");
+  printMacAddress(macaddr);
+
+  wifi_get_macaddr(SOFTAP_IF, macaddr);
+  Serial.print("mac address (SOFTAP_IF): ");
+  printMacAddress(macaddr);
 
   esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
   esp_now_register_recv_cb([](uint8_t *macaddr, uint8_t *data, uint8_t len) {
